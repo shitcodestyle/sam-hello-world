@@ -12,6 +12,8 @@ import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.RequestHandler;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyRequestEvent;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyResponseEvent;
+import model.*;
+import org.json.JSONObject;
 
 /**
  * Handler for requests to Lambda function.
@@ -19,30 +21,33 @@ import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyResponseEvent
 public class App implements RequestHandler<APIGatewayProxyRequestEvent, APIGatewayProxyResponseEvent> {
 
     public APIGatewayProxyResponseEvent handleRequest(final APIGatewayProxyRequestEvent input, final Context context) {
+        // get taskType, inputValue parameters from query string
+        Map<String, String> inputParams = input.getQueryStringParameters();
+        String taskType = inputParams.get("taskType");
+        int inputValue = Integer.parseInt(inputParams.get("inputValue"));
+        // create context and choose strategy according to the task type
+        model.Context strategyContext = new model.Context();
+        Action action = Action.valueOf(taskType);
+        if (action == Action.factorial) {
+            strategyContext.setStrategy(new FactorialStrategy());
+        }
+        if (action == Action.fibonacci) {
+            strategyContext.setStrategy(new FibonacciStrategy());
+        }
+        if (action == Action.prime) {
+            strategyContext.setStrategy(new PrimeNumberStrategy());
+        }
+        // use the strategy to perform the task
+        String taskResult = strategyContext.execute(inputValue);
+        // setup response
         Map<String, String> headers = new HashMap<>();
         headers.put("Content-Type", "application/json");
         headers.put("X-Custom-Header", "application/json");
-
         APIGatewayProxyResponseEvent response = new APIGatewayProxyResponseEvent()
                 .withHeaders(headers);
-        try {
-            final String pageContents = this.getPageContents("https://checkip.amazonaws.com");
-            String output = String.format("{ \"message\": \"Hello, World! I am Serhii Skoryi. I want to become a professional software developer.\", \"location\": \"%s\" }", pageContents);
-
-            return response
-                    .withStatusCode(200)
-                    .withBody(output);
-        } catch (IOException e) {
-            return response
-                    .withBody("{}")
-                    .withStatusCode(500);
-        }
+        JSONObject json = new JSONObject();
+        json.put("result", taskResult);
+        return response.withStatusCode(200).withBody(json.toString());
     }
 
-    private String getPageContents(String address) throws IOException{
-        URL url = new URL(address);
-        try(BufferedReader br = new BufferedReader(new InputStreamReader(url.openStream()))) {
-            return br.lines().collect(Collectors.joining(System.lineSeparator()));
-        }
-    }
 }
