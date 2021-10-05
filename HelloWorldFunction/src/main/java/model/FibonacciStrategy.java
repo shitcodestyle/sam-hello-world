@@ -1,18 +1,14 @@
 package model;
 
 public class FibonacciStrategy implements Strategy{
+
     @Override
-    public String execute(int n) {
-        if(n == 0 || n == 1) {
-            return Integer.toString(n);
-        }
-        int n0 = 0, n1 = 1;
-        int tempNthTerm;
-        for (int i = 2; i <= n; i++) {
-            tempNthTerm = n0 + n1;
-            n0 = n1;
-            n1 = tempNthTerm;
-        }
-        return Integer.toString(n1);
+    public String execute(int member) {
+        calculateFibonacciMember(member);
+        return Integer.toString(calculateFibonacciMember(member));
+    }
+
+    private int calculateFibonacciMember(int member) {
+        return (member == 1 || member == 0) ? member : calculateFibonacciMember(member - 1) + calculateFibonacciMember(member - 2);
     }
 }
